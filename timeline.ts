@@ -6,39 +6,7 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
 import type { AgentRowStatus } from "./types.js";
-
-// ── Agent color cycling ──
-// All agents get colors from this pool in round-robin order.
-const AGENT_COLORS = [
-  "\x1b[38;5;75m",   // soft blue
-  "\x1b[38;5;114m",  // soft green
-  "\x1b[38;5;222m",  // soft yellow
-  "\x1b[38;5;183m",  // soft purple
-  "\x1b[38;5;181m",  // soft rose
-  "\x1b[38;5;116m",  // soft cyan
-  "\x1b[38;5;250m",  // light gray
-  "\x1b[38;5;210m",  // soft red
-  "\x1b[38;5;146m",  // lavender
-  "\x1b[38;5;79m",   // seafoam
-  "\x1b[38;5;215m",  // peach
-  "\x1b[38;5;218m",  // pink
-  "\x1b[38;5;66m",   // teal-gray
-  "\x1b[38;5;95m",   // brown-gray
-  "\x1b[38;5;103m",  // slate blue
-  "\x1b[38;5;107m",  // olive
-  "\x1b[38;5;131m",  // brick red
-  "\x1b[38;5;136m",  // tan
-  "\x1b[38;5;139m",  // mauve
-  "\x1b[38;5;144m",  // sage
-  "\x1b[38;5;152m",  // steel blue
-  "\x1b[38;5;175m",  // rose
-  "\x1b[38;5;180m",  // peach
-  "\x1b[38;5;187m",  // cream
-  "\x1b[38;5;194m",  // mint
-  "\x1b[38;5;223m",  // warm yellow
-];
-
-const RESET_FG = "\x1b[39m";
+import { getAgentColor, RESET_FG } from "./colors.js";
 
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms.toFixed(0)}ms`;
@@ -58,19 +26,6 @@ function formatAbsoluteTime(ms: number): string {
   const mm = d.getMinutes().toString().padStart(2, '0');
   const ss = d.getSeconds().toString().padStart(2, '0');
   return `${hh}:${mm}:${ss}`;
-}
-
-const _assignedColors = new Map<string, string>();
-let _colorIndex = 0;
-
-function getAgentColor(name: string): string {
-  let color = _assignedColors.get(name);
-  if (!color) {
-    color = AGENT_COLORS[_colorIndex % AGENT_COLORS.length]!;
-    _colorIndex++;
-    _assignedColors.set(name, color);
-  }
-  return color;
 }
 
 /**
