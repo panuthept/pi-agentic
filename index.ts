@@ -40,8 +40,6 @@ import {
   recordParallelStart as tlRecordParallelStart,
   recordParallelUpdate as tlRecordParallelUpdate,
   finalizeAllRunning as tlFinalizeAllRunning,
-  isTimelineVisible,
-  toggleTimelineVisibility,
   clearTimelineHistory,
   setMaxVisible,
   getMaxVisible,

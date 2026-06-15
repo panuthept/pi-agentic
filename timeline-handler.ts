@@ -8,8 +8,6 @@ import type { ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-a
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
 
 import {
-  isTimelineVisible,
-  toggleTimelineVisibility,
   clearTimelineHistory,
   setMaxVisible,
   getMaxVisible,
@@ -43,12 +41,10 @@ function parseDuration(input: string): number | null {
 const HELP_TEXT = `
 Usage:  /timeline [subcommand] [options]
 
-Toggle or configure the execution timeline Gantt chart widget.
+Configure the execution timeline Gantt chart widget.
 
 Subcommands:
-  (no args)             Toggle timeline visibility
-  show                  Force show the timeline
-  hide                  Force hide the timeline
+  (no args)             Show timeline settings (status)
   clear                 Clear all timeline history
   max <N>               Set max visible entries (1–50, default 6)
   bar <PCT>             Set bar width percentage (10–100, default 75)
@@ -64,8 +60,7 @@ Alias:
   /tl                   Same as /timeline
 
 Examples:
-  /timeline             Toggle visibility
-  /timeline show        Show the timeline widget
+  /timeline             Show timeline settings (status)
   /timeline max 10      Show up to 10 entries
   /timeline window 5m   Only show entries from the last 5 minutes
   /timeline time real   Switch to absolute timestamp mode
@@ -85,8 +80,6 @@ interface SubcommandDef {
 }
 
 const SUBCOMMANDS: SubcommandDef[] = [
-  { value: "show",   label: "show",   description: "Force show the timeline widget" },
-  { value: "hide",   label: "hide",   description: "Force hide the timeline widget" },
   { value: "clear",  label: "clear",  description: "Clear all timeline history" },
   { value: "max",    label: "max",    description: "Set max visible entries (1–50), e.g. max 10" },
   { value: "bar",    label: "bar",    description: "Set bar width percentage (10–100), e.g. bar 75" },
@@ -130,7 +123,7 @@ const TIME_VALUES: SubcommandDef[] = [
  * Provides autocomplete suggestions for /timeline [subcommand] [options].
  *
  * Completion stages:
- *   1st token → subcommand (show, hide, clear, max, window, time, help)
+ *   1st token → subcommand (clear, max, bar, window, time, status, help)
  *   2nd token (max) → number suggestions
  *   2nd token (window) → duration suggestions (30s, 5m, 1h, off)
  *   2nd token (time) → mode suggestions (real, turn)
@@ -290,21 +283,14 @@ export async function timelineHandler(args: string, ctx: ExtensionCommandContext
     return;
   }
 
-  // ── hide / show / toggle ──
-  if (cmd === "hide" && isTimelineVisible()) {
-    toggleTimelineVisibility();
-    reinstallTimelineWidget(ctx);
-    ctx.ui.notify("Timeline hidden. Use /timeline to show.", "info");
-  } else if (cmd === "show" && !isTimelineVisible()) {
-    toggleTimelineVisibility();
-    reinstallTimelineWidget(ctx);
-    ctx.ui.notify("Timeline shown.", "info");
-  } else {
-    toggleTimelineVisibility();
-    reinstallTimelineWidget(ctx);
-    ctx.ui.notify(
-      `Timeline ${isTimelineVisible() ? "shown" : "hidden"}.`,
-      isTimelineVisible() ? "info" : "warning",
-    );
-  }
+  // ── Fallback: show status ──
+  const maxVal = getMaxVisible();
+  const windowVal = getRollingWindow();
+  const barPct = Math.round(getBarWidthRatio() * 100);
+  const timeMode = getTimeMode();
+  const windowStr = windowVal === undefined ? "off (show all)" : `${windowVal}ms`;
+  ctx.ui.notify(
+    `Timeline settings: max=${maxVal}, window=${windowStr}, bar=${barPct}%, time=${timeMode} (always visible)`,
+    "info",
+  );
 }

@@ -2,7 +2,7 @@
  * Persistent execution timeline widget.
  *
  * Shows a Gantt-style timeline of all subagent executions,
- * accumulated across runs. Collapsible via /timeline command.
+ * accumulated across runs. Always visible.
  *
  * Widget key: "execution-timeline"
  * Placement: belowEditor (stacks below the live status bar)
@@ -20,13 +20,11 @@ import { getAgentDir } from "@earendil-works/pi-coding-agent";
 
 interface TimelineState {
   entries: TimelineEntry[];
-  visible: boolean;
   nextId: number;
 }
 
 let _state: TimelineState = {
   entries: [],
-  visible: true,
   nextId: 1,
 };
 
@@ -88,16 +86,6 @@ function formatWindowDuration(ms: number | undefined): string {
 }
 
 // ── Public API ──
-
-export function isTimelineVisible(): boolean {
-  return _state.visible;
-}
-
-export function toggleTimelineVisibility(): void {
-  _state.visible = !_state.visible;
-  clearCached();
-  saveTimelineSettings();
-}
 
 export function clearTimelineHistory(): void {
   _state.entries = [];
@@ -398,34 +386,10 @@ export function createTimelineWidget(
       _cachedWidth = width;
 
       const entries = _state.entries;
-      const visible = _state.visible;
 
-      // ── Collapsed: single summary line ──
-      if (!visible) {
-        const total = entries.length;
-        const runningCount = entries.filter((e) => e.status === "running").length;
-        const summary =
-          total > 0
-            ? `Timeline: ${total} run${total !== 1 ? "s" : ""}${runningCount > 0 ? `, ${runningCount} running` : ""}`
-            : "Execution Timeline (empty)";
-        const hint = "— /tl to show";
-        const line =
-          theme.fg("accent", `╭─ ${summary} `) + theme.fg("dim", hint) + theme.fg("accent", " ─╮");
-        _cachedLines = [truncateToWidth(line, width, "...")];
-        return _cachedLines;
-      }
-
-      // ── Empty: placeholder hint ──
+      // ── Empty: nothing shown ──
       if (entries.length === 0) {
-        _cachedLines = [
-          truncateToWidth(
-            theme.fg("accent", "╭─ Execution Timeline ─  ") +
-              theme.fg("dim", "(run a subagent to see history)") +
-              theme.fg("accent", " ─╮"),
-            width,
-            "...",
-          ),
-        ];
+        _cachedLines = [];
         return _cachedLines;
       }
 
