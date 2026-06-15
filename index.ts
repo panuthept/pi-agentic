@@ -156,12 +156,45 @@ function updateAgentStatus() {
   _agentCtx.ui.setStatus("agent", _agentCtx.ui.theme.fg("accent", _currentAgent.toUpperCase()));
 }
 
+/**
+ * Sanitize agent instructions to prevent prompt injection from .md files.
+ * Removes or neutralizes common prompt injection patterns while preserving
+ * legitimate content.
+ *
+ * NOTE: This is defense-in-depth, not a perfect security boundary.
+ * Agent .md files are user-controlled content intentionally placed in
+ * ~/.pi/agent/agents/ by the user. Sanitization guards against accidental
+ * injection from misconfigured agent definitions (e.g. a malicious PR
+ * merged to the agents directory), but the user ultimately controls what
+ * goes into those files.
+ */
+function sanitizeAgentInstructions(instructions: string): string {
+  if (!instructions) return instructions;
+
+  // Strip any content that attempts to override system role
+  // by replacing "system" role directives with neutral alternatives
+  let sanitized = instructions
+    // Remove attempts to override system prompt completely
+    .replace(/You are (now|henceforth|from now on) /gi, "You are assisting as ")
+    // Neutralize "ignore all previous" patterns
+    .replace(/ignore\s+(all\s+)?(previous|above|earlier)\s+(instructions|prompts|directives)/gi,
+      "(reference note)")
+    // Neutralize role-switching attempts
+    .replace(/your\s+(new|real|actual)\s+(role|identity|persona|personality)\s+is/gi,
+      "your role includes")
+    // Prevent ending the system prompt early
+    .replace(/\[\/?(system|user|assistant|tool)\]/gi, "(role)");
+
+  return sanitized.trim();
+}
+
 function injectAgentInstructions(payload) {
   if (!payload || typeof payload !== "object") return payload;
   if (!_currentAgent || !_agentCatalog) return payload;
   const def = _agentCatalog.get(_currentAgent);
   if (!def?.instructions) return payload;
-  const injection = "\n\n[AGENT: " + _currentAgent.toUpperCase() + "]" + def.instructions;
+  const safeInstructions = sanitizeAgentInstructions(def.instructions);
+  const injection = "\n\n[AGENT: " + _currentAgent.toUpperCase() + "]" + safeInstructions;
   const obj = payload;
   if (typeof obj.system === "string") {
     obj.system += injection;
