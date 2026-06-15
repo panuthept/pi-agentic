@@ -32,7 +32,6 @@ import { renderSubagentCall, renderSubagentResult } from "./render.js";
 import { mapConcurrent, runAgent } from "./runner.js";
 import { SubagentParams } from "./schemas.js";
 import type { AgentRowStatus, OnUpdate, RunResult, SubagentDetails, ToolCallEntry } from "./types.js";
-import { pushWidgetUpdate, finalizeWidget, reinstallWidget } from "./widget.js";
 import {
   recordStart as tlRecordStart,
   recordUpdate as tlRecordUpdate,
@@ -231,9 +230,6 @@ _onBgJobComplete = (job) => {
       const warmAgentDir = getAgentDir();
       setTimeout(() => defaultLoaderPool.warm(warmCwd, warmAgentDir, false), 1000);
     }
-
-    // Register the subagent bar widget below the editor
-    reinstallWidget(ctx);
 
     // Register the execution timeline widget below the editor
     reinstallTimelineWidget(ctx);
@@ -604,8 +600,6 @@ _onBgJobComplete = (job) => {
               // Always push to widget regardless of forwardUpdates
               if (partial.details) {
                 const d = partial.details as SubagentDetails;
-                pushWidgetUpdate(d);
-                reinstallWidget(ctx);
                 // Update timeline entry
                 tlRecordUpdate(tlEntryId, {
                   toolCount: d.toolCalls?.length ?? 0,
@@ -648,8 +642,6 @@ _onBgJobComplete = (job) => {
           _fgJobs.delete(fgId);
           signal?.removeEventListener("abort", forwardAbort);
           ctx.ui.setStatus(FG_STATUS_KEY, undefined);
-          finalizeWidget();
-          reinstallWidget(ctx);
           // Finalize timeline entry
           const tlStatus = runResult && runResult.exitCode !== 0 ? "error" as const : "success" as const;
           tlRecordEnd(tlEntryId, tlStatus);
@@ -721,8 +713,6 @@ _onBgJobComplete = (job) => {
             content: [{ type: "text", text: "" }],
             details,
           });
-          pushWidgetUpdate(details);
-          reinstallWidget(ctx);
           tlRecordParallelUpdate(details);
           reinstallTimelineWidget(ctx);
         };
@@ -783,8 +773,6 @@ _onBgJobComplete = (job) => {
         );
         const outputs = allResults.map((r) => `[${r.agentName}] ${r.exitCode === 0 ? "✓" : "✗"}\n${getFinalText(r)}`).join("\n\n");
 
-        finalizeWidget();
-        reinstallWidget(ctx);
         // Finalize any lingering timeline entries
         tlFinalizeAllRunning();
         reinstallTimelineWidget(ctx);
