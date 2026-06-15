@@ -455,15 +455,28 @@ export function createTimelineWidget(
         20,
         Math.max(4, ...displayEntries.map((e) => e.agent.length)) + 1,
       );
+
+      // ── Pre-calculate max raw usage suffix width across all entries ──
+      // This ensures the bar leaves enough room for every entry's suffix.
+      let maxRawUsageWidth = 0;
+      for (const e of visibleEntries) {
+        const parts: string[] = [];
+        if (e.toolCount > 0) parts.push(`${e.toolCount} tool${e.toolCount > 1 ? "s" : ""}`);
+        if (e.usage?.turns) parts.push(`${e.usage.turns} turn${e.usage.turns > 1 ? "s" : ""}`);
+        if (e.usage?.input) parts.push(`↑${e.usage.input >= 1000 ? `${(e.usage.input / 1000).toFixed(1)}k` : e.usage.input}`);
+        if (e.usage?.output) parts.push(`↓${e.usage.output >= 1000 ? `${(e.usage.output / 1000).toFixed(1)}k` : e.usage.output}`);
+        if (e.usage?.cost) parts.push(`$${e.usage.cost.toFixed(4)}`);
+        const raw = parts.join("  ");
+        if (raw.length > maxRawUsageWidth) maxRawUsageWidth = raw.length;
+      }
+      // Add a small buffer and clamp to reasonable bounds
+      const minUsageWidth = Math.max(5, Math.min(55, maxRawUsageWidth + 3));
+
       // Fixed overhead AFTER the bar on each agent line (visible chars):
-      //   " " (1) + statusIcon (1) + " " (1) + durStr (6) + "  " (2) = 11
+      //   " " (1) + statusIcon (1) + " " (1) + durStr (~6) + "  " (2) = 11
       // Plus right border "│" (1) added during padding phase
-      // Total visible overhead besides bar and usage = 11 + 1 = 12
       const overheadAfterBar = 11;
       const rightBorderWidth = 1;
-      // Reserve minimum width for the usage suffix so it doesn't get truncated
-      // "3 tools  5 turns  ↑1.2k  ↓240  $0.0023" ≈ 44 chars
-      const minUsageWidth = 35;
 
       const barWidth = Math.max(
         10,
@@ -572,7 +585,7 @@ export function createTimelineWidget(
         const durStr = formatDuration(e.duration ?? (e.endTime ? e.endTime - e.startTime : now - e.startTime));
 
         // Tool usage info (tools, turns, tokens, cost)
-        // Available width for the usage suffix = remaining space after bar + fixed overhead
+        // usageWidth is the remaining space after bar + fixed overhead
         const usageWidth = Math.max(5, contentWidth - labelWidth - barWidth - overheadAfterBar - rightBorderWidth);
         let usageStr = "";
         if (e.usage) {
