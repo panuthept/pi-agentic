@@ -455,11 +455,21 @@ export function createTimelineWidget(
         20,
         Math.max(4, ...displayEntries.map((e) => e.agent.length)) + 1,
       );
+      // Fixed overhead AFTER the bar on each agent line (visible chars):
+      //   " " (1) + statusIcon (1) + " " (1) + durStr (6) + "  " (2) = 11
+      // Plus right border "│" (1) added during padding phase
+      // Total visible overhead besides bar and usage = 11 + 1 = 12
+      const overheadAfterBar = 11;
+      const rightBorderWidth = 1;
+      // Reserve minimum width for the usage suffix so it doesn't get truncated
+      // "3 tools  5 turns  ↑1.2k  ↓240  $0.0023" ≈ 44 chars
+      const minUsageWidth = 35;
+
       const barWidth = Math.max(
         10,
         Math.min(
-          Math.floor((contentWidth - labelWidth) * _barWidthRatio),  // bar gets ~N% of available width
-          contentWidth - labelWidth - 18,                   // but never exceed available minus fixed elements
+          Math.floor((contentWidth - labelWidth) * _barWidthRatio),
+          contentWidth - labelWidth - overheadAfterBar - rightBorderWidth - minUsageWidth,
         ),
       );
 
@@ -562,7 +572,8 @@ export function createTimelineWidget(
         const durStr = formatDuration(e.duration ?? (e.endTime ? e.endTime - e.startTime : now - e.startTime));
 
         // Tool usage info (tools, turns, tokens, cost)
-        const usageWidth = Math.max(5, contentWidth - labelWidth - barWidth - 14);
+        // Available width for the usage suffix = remaining space after bar + fixed overhead
+        const usageWidth = Math.max(5, contentWidth - labelWidth - barWidth - overheadAfterBar - rightBorderWidth);
         let usageStr = "";
         if (e.usage) {
           const parts: string[] = [];
