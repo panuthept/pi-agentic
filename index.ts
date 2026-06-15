@@ -785,8 +785,6 @@ _onBgJobComplete = (job) => {
 
         finalizeWidget();
         reinstallWidget(ctx);
-        // Finalize any lingering timeline entries
-        tlFinalizeAllRunning();
         reinstallTimelineWidget(ctx);
         return {
           content: [{ type: "text", text: outputs }],
