@@ -83,7 +83,6 @@ const _fgJobs = new Map<string, ForegroundDetachEntry>();
 const AGENT_STATE_FILE = join(homedir(), ".pi", "agent", "main-agent-state.json");
 let _currentAgent;
 let _agentCatalog;
-let _baselineTools = [];
 let _agentCtx;
 
 function persistAgent() {
@@ -117,7 +116,9 @@ function loadAgentCatalog(dir) {
           instructions: body,
         });
       }
-    } catch {}
+    } catch (e) {
+      console.warn(`[pi-agentic] Failed to parse agent file ${f}: ${e instanceof Error ? e.message : e}`);
+    }
   }
   return catalog;
 }
@@ -213,7 +214,6 @@ _onBgJobComplete = (job) => {
 
   pi.on("session_start", async (_event, ctx) => {
     _agentCtx = ctx;
-    _baselineTools = pi.getAllTools().map(t => t.name);
     const agentDir = join(homedir(), ".pi", "agent", "agents");
     _agentCatalog = loadAgentCatalog(agentDir);
     const persisted = restoreAgent();
@@ -486,7 +486,11 @@ _onBgJobComplete = (job) => {
 
     async execute(_id: string, params: Record<string, any>, signal: AbortSignal | undefined, onUpdate, ctx: ExtensionContext): Promise<any> {
       const cwd = params.cwd ?? ctx.cwd;
-      const agents = discoverAgents(cwd);
+      let agents = discoverAgents(cwd);
+      const scope = params.agentScope ?? "both";
+      if (scope !== "both") {
+        agents = agents.filter(a => a.source === scope);
+      }
 
       const findAgent = (name: string): { agent?: AgentConfig; error?: string } => {
         const found = agents.find((a) => a.name === name);
