@@ -99,7 +99,14 @@ export function renderSubagentCall(
       cache.callKey = undefined;
     },
     render(width: number): string[] {
-      const key = JSON.stringify({ args, executionStarted: context.executionStarted, argsComplete: context.argsComplete, width });
+      let key: string;
+      try {
+        key = JSON.stringify({ args, executionStarted: context.executionStarted, argsComplete: context.argsComplete, width });
+      } catch {
+        // args may contain non-serializable values (circular refs, BigInt, etc.)
+        // Fall back to a simple key based on what we can safely extract
+        key = `w${width}_e${context.executionStarted}_c${context.argsComplete}_a${typeof args}`;
+      }
       if (cache.callWidth === width && cache.callKey === key && cache.callLines) return cache.callLines;
 
       const out: string[] = [];
