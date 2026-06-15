@@ -177,6 +177,17 @@ function injectAgentInstructions(payload) {
   return obj;
 }
 
+/** Case-insensitive agent name lookup in the catalog. */
+function findAgentInCatalog(name: string): string | undefined {
+  if (!_agentCatalog) return undefined;
+  if (_agentCatalog.has(name)) return name;
+  const lower = name.toLowerCase();
+  for (const key of _agentCatalog.keys()) {
+    if (key.toLowerCase() === lower) return key;
+  }
+  return undefined;
+}
+
 
 // ─── Extension entry point ──────────────────────────────────────────────────
 
@@ -323,11 +334,14 @@ _onBgJobComplete = (job) => {
       });
       const choice = await ui.ui.select("Select agent:", items);
       if (!choice) return;
-      const picked = choice.split(" — ")[0].toLowerCase();
-      if (_agentCatalog.has(picked)) {
-        applyAgent(picked, pi);
+      const picked = choice.split(" — ")[0];
+      const matchedKey = findAgentInCatalog(picked);
+      if (matchedKey) {
+        applyAgent(matchedKey, pi);
         persistAgent();
-        ui.ui.notify("Agent: " + picked.toUpperCase(), "info");
+        ui.ui.notify("Agent: " + matchedKey.toUpperCase(), "info");
+      } else {
+        ui.ui.notify("Could not find agent: " + picked, "error");
       }
     },
   });
