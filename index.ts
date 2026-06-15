@@ -59,10 +59,8 @@ let _onBgJobComplete: ((job: BackgroundSubagentJob) => void) | null = null;
 let _setBgStatus: ((text: string | undefined) => void) | null = null;
 
 function getBgManager(): BackgroundJobManager {
-  if (!_bgManager) _bgManager = new BackgroundJobManager({
-    onJobComplete: (job) => _onBgJobComplete?.(job),
-  });
-  return _bgManager;
+  // Eagerly initialized during extension registration
+  return _bgManager!;
 }
 
 function refreshBgStatus(): void {
@@ -184,9 +182,6 @@ export default function (pi: ExtensionAPI) {
   // Load persisted timeline settings
   loadTimelineSettings();
 
-  pi.on("session_start", () => {
-    loadTimelineSettings();
-  });
 
   const BG_STATUS_KEY = "fast-subagent-bg";
   const FG_STATUS_KEY = "fast-subagent-fg";
@@ -210,6 +205,10 @@ _onBgJobComplete = (job) => {
       { deliverAs: "followUp" },
     );
   };
+
+  _bgManager = new BackgroundJobManager({
+    onJobComplete: (job) => _onBgJobComplete?.(job),
+  });
 
   pi.on("session_start", async (_event, ctx) => {
     _agentCtx = ctx;
@@ -260,6 +259,7 @@ _onBgJobComplete = (job) => {
 
   pi.on("session_shutdown", async () => {
     clearAgentWidget();
+    _agentCtx = null;
     getBgManager().shutdown();
     _bgManager = null;
     _setBgStatus = null;
