@@ -219,7 +219,7 @@ export function renderSubagentResult(
             const maxInputLines = showFullInput ? Infinity : (readPreviewSettings().promptPreviewLines ?? 3);
             const preview = truncateToVisualLines(a.taskSummary, maxInputLines, width - agentPref.length - 2);
             for (const [li, l] of preview.visualLines.entries()) {
-              const prefix = li === 0 ? "IN " : "   ";
+              const prefix = li === 0 ? "📋 " : "   ";
               out.push(truncateToWidth(agentPref + theme.fg("dim", prefix + l), width, "..."));
             }
             if (!showFullInput && preview.skippedCount > 0) {
@@ -239,7 +239,7 @@ export function renderSubagentResult(
           const preview = truncateToVisualLines(a.responseText, maxLines, width - pref.length - 2);
           if (preview.visualLines.length > 0) {
             for (const [li, l] of preview.visualLines.entries()) {
-              const prefix = li === 0 ? `OUT ` : `      `;
+              const prefix = li === 0 ? `📄 ` : `      `;
               out.push(truncateToWidth(pref + prefix + l, width, "..."));
             }
             if (!showFull && preview.skippedCount > 0) {
@@ -329,7 +329,7 @@ export function renderSubagentResult(
       const maxInputLines = showFullInput ? Infinity : (readPreviewSettings().promptPreviewLines ?? 3);
       const preview = truncateToVisualLines(details.task, maxInputLines, width - 6);
       for (const [li, l] of preview.visualLines.entries()) {
-        const prefix = li === 0 ? "      IN " : "         ";
+        const prefix = li === 0 ? "      📋 " : "         ";
         out.push(truncateToWidth(`${prefix}${theme.fg("dim", l)}`, width, "..."));
       }
       if (!showFullInput && preview.skippedCount > 0) {
@@ -348,7 +348,7 @@ export function renderSubagentResult(
       const preview = truncateToVisualLines(responseText, maxLines, width - 6);
       if (preview.visualLines.length > 0) {
         for (const [li, l] of preview.visualLines.entries()) {
-          const prefix = li === 0 ? `      OUT ` : `         `;
+          const prefix = li === 0 ? `      📄 ` : `         `;
           out.push(truncateToWidth(`${prefix}${l}`, width, "..."));
         }
         if (!showFull && preview.skippedCount > 0) {
