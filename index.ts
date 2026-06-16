@@ -28,7 +28,7 @@ import {
   summarizeTask,
 } from "./format.js";
 import { defaultLoaderPool } from "./loader-pool.js";
-import { renderSubagentCall, renderSubagentResult } from "./render.js";
+import { renderSubagentCall, renderSubagentResult, getOutputMode, setOutputMode, getPreviewLines, setPreviewLines } from "./render.js";
 import { mapConcurrent, runAgent } from "./runner.js";
 import { SubagentParams } from "./schemas.js";
 import type { AgentRowStatus, OnUpdate, RunResult, SubagentDetails, ToolCallEntry } from "./types.js";
@@ -516,6 +516,49 @@ _onBgJobComplete = (job) => {
     description: "Short alias for /timeline. See /timeline help for subcommands.",
     getArgumentCompletions: (prefix: string) => getTimelineCompletions(prefix),
     handler: timelineHandler,
+  });
+
+  // ── /subagent:output — configure output display ────────────
+  pi.registerCommand("subagent:output", {
+    description: "Configure subagent output display. Subcommands: short, full, lines <N>, status",
+    getArgumentCompletions(prefix: string) {
+      const subcommands = ["short", "full", "lines", "status"];
+      return subcommands
+        .filter((s) => s.startsWith(prefix))
+        .map((s) => ({ value: s, label: s }));
+    },
+    async handler(args: string, ctx: ExtensionCommandContext) {
+      const trimmed = args.trim();
+
+      if (!trimmed || trimmed === "status") {
+        const mode = getOutputMode();
+        const lines = getPreviewLines();
+        ctx.ui.notify?.(`Subagent output mode: ${mode}, preview lines: ${lines}`);
+        return;
+      }
+
+      if (trimmed === "short") {
+        setOutputMode("short");
+        ctx.ui.notify?.("Subagent output set to short (compact preview)");
+        return;
+      }
+
+      if (trimmed === "full") {
+        setOutputMode("full");
+        ctx.ui.notify?.("Subagent output set to full (show complete text)");
+        return;
+      }
+
+      const linesMatch = trimmed.match(/^lines\s+(\d+)$/i);
+      if (linesMatch) {
+        const n = parseInt(linesMatch[1]!, 10);
+        setPreviewLines(n);
+        ctx.ui.notify?.(`Subagent preview lines set to ${n}`);
+        return;
+      }
+
+      ctx.ui.notify?.("Usage: /subagent:output [short|full|lines <N>|status]");
+    },
   });
 
   // ─── `subagent` tool ──────────────────────────────────────────────────────

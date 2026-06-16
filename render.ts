@@ -2,7 +2,7 @@
  * Render function for the `subagent` tool's result panel.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { getAgentDir, Theme, truncateToVisualLines } from "@earendil-works/pi-coding-agent";
@@ -217,8 +217,9 @@ export function renderSubagentResult(
           // Show the task/prompt (input prompt) instead of tool calls and response text
           if (a.taskSummary) {
             const preview = truncateToVisualLines(a.taskSummary, 3, width - agentPref.length - 2);
-            for (const l of preview.visualLines) {
-              out.push(truncateToWidth(agentPref + theme.fg("dim", "  " + l), width, "..."));
+            for (const [li, l] of preview.visualLines.entries()) {
+              const prefix = li === 0 ? "📥 " : "   ";
+              out.push(truncateToWidth(agentPref + theme.fg("dim", prefix + l), width, "..."));
             }
             if (preview.skippedCount > 0) {
               out.push(truncateToWidth(theme.fg("dim", agentPref + `  … ${preview.skippedCount} more lines`), width, "..."));
@@ -239,7 +240,7 @@ export function renderSubagentResult(
           const preview = truncateToVisualLines(a.responseText, maxLines, width - pref.length - 2);
           if (preview.visualLines.length > 0) {
             for (const [li, l] of preview.visualLines.entries()) {
-              const prefix = li === 0 ? `${toggleIcon} ` : `     `;
+              const prefix = li === 0 ? `📤 ${toggleIcon} ` : `      `;
               out.push(truncateToWidth(pref + prefix + l, width, "..."));
             }
             if (!showFull && preview.skippedCount > 0) {
@@ -325,8 +326,9 @@ export function renderSubagentResult(
     // Task/prompt as child (no "Prompt:" label, 6-space indent like parallel mode)
     if (details.task) {
       const preview = truncateToVisualLines(details.task, 3, width - 6);
-      for (const l of preview.visualLines) {
-        out.push(truncateToWidth(`      ${theme.fg("dim", l)}`, width, "..."));
+      for (const [li, l] of preview.visualLines.entries()) {
+        const prefix = li === 0 ? "      📥 " : "         ";
+        out.push(truncateToWidth(`${prefix}${theme.fg("dim", l)}`, width, "..."));
       }
       if (preview.skippedCount > 0) {
         out.push(truncateToWidth(theme.fg("dim", `      … ${preview.skippedCount} more lines`), width, "..."));
@@ -335,7 +337,7 @@ export function renderSubagentResult(
 
     // ── Output/response text ──
     const responseText = details.responseText ?? agentText;
-    if (responseText && !details.running) {
+    if (responseText) {
       const isExpanded = _expandedOutputs.has(details.agentName ?? "");
       const outputMode = readPreviewSettings().outputMode;
       const showFull = outputMode === "full" || isExpanded;
@@ -346,12 +348,12 @@ export function renderSubagentResult(
       const preview = truncateToVisualLines(responseText, maxLines, width - 6);
       if (preview.visualLines.length > 0) {
         for (const [li, l] of preview.visualLines.entries()) {
-          const prefix = li === 0 ? `${indent}${toggleIcon} ` : `${indent}     `;
+          const prefix = li === 0 ? `      📤 ${toggleIcon} ` : `         `;
           out.push(truncateToWidth(`${prefix}${l}`, width, "..."));
         }
         if (!showFull && preview.skippedCount > 0) {
           out.push(truncateToWidth(
-            theme.fg("dim", `${indent}  … ${preview.skippedCount} more lines (click [+] to expand)`),
+            theme.fg("dim", `      … ${preview.skippedCount} more lines — click [+] to expand`),
             width, "...",
           ));
         }
@@ -405,4 +407,71 @@ export function renderSubagentResult(
       return out;
     },
   };
+}
+
+// ─── Output settings commands ─────────────────────────────────
+
+export function getOutputMode(): string {
+  return readPreviewSettings().outputMode;
+}
+
+export function setOutputMode(mode: "short" | "full"): void {
+  try {
+    const path = join(getAgentDir(), "settings.json");
+    let full: Record<string, unknown> = {};
+    if (existsSync(path)) {
+      try { full = JSON.parse(readFileSync(path, "utf-8")); } catch { /* ignore */ }
+    }
+    const fs = (full.fastSubagent ?? {}) as Record<string, unknown>;
+    fs.outputMode = mode;
+    full.fastSubagent = fs;
+    const tmpPath = path + ".tmp";
+    writeFileSync(tmpPath, JSON.stringify(full, null, 2), "utf-8");
+    renameSync(tmpPath, path);
+    _settingsCache = null;
+  } catch { /* ignore */ }
+}
+
+export function getPreviewLines(): number {
+  return readPreviewSettings().previewLines;
+}
+
+export function setPreviewLines(n: number): void {
+  const clamped = Math.max(1, Math.min(50, Math.floor(n)));
+  try {
+    const path = join(getAgentDir(), "settings.json");
+    let full: Record<string, unknown> = {};
+    if (existsSync(path)) {
+      try { full = JSON.parse(readFileSync(path, "utf-8")); } catch { /* ignore */ }
+    }
+    const fs = (full.fastSubagent ?? {}) as Record<string, unknown>;
+    fs.previewLines = clamped;
+    full.fastSubagent = fs;
+    const tmpPath = path + ".tmp";
+    writeFileSync(tmpPath, JSON.stringify(full, null, 2), "utf-8");
+    renameSync(tmpPath, path);
+    _settingsCache = null;
+  } catch { /* ignore */ }
+}
+
+export function getPromptPreviewLines(): number {
+  return readPreviewSettings().promptPreviewLines;
+}
+
+export function setPromptPreviewLines(n: number): void {
+  const clamped = Math.max(1, Math.min(50, Math.floor(n)));
+  try {
+    const path = join(getAgentDir(), "settings.json");
+    let full: Record<string, unknown> = {};
+    if (existsSync(path)) {
+      try { full = JSON.parse(readFileSync(path, "utf-8")); } catch { /* ignore */ }
+    }
+    const fs = (full.fastSubagent ?? {}) as Record<string, unknown>;
+    fs.promptPreviewLines = clamped;
+    full.fastSubagent = fs;
+    const tmpPath = path + ".tmp";
+    writeFileSync(tmpPath, JSON.stringify(full, null, 2), "utf-8");
+    renameSync(tmpPath, path);
+    _settingsCache = null;
+  } catch { /* ignore */ }
 }
