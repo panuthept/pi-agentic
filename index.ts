@@ -28,7 +28,7 @@ import {
   summarizeTask,
 } from "./format.js";
 import { defaultLoaderPool } from "./loader-pool.js";
-import { renderSubagentCall, renderSubagentResult, getOutputMode, setOutputMode, getPreviewLines, setPreviewLines } from "./render.js";
+import { renderSubagentCall, renderSubagentResult, getOutputMode, setOutputMode, getPreviewLines, setPreviewLines, getPromptPreviewLines, setPromptPreviewLines } from "./render.js";
 import { mapConcurrent, runAgent } from "./runner.js";
 import { SubagentParams } from "./schemas.js";
 import type { AgentRowStatus, OnUpdate, RunResult, SubagentDetails, ToolCallEntry } from "./types.js";
@@ -520,9 +520,9 @@ _onBgJobComplete = (job) => {
 
   // ── /subagent:output — configure output display ────────────
   pi.registerCommand("subagent:output", {
-    description: "Configure subagent output display. Subcommands: short, full, lines <N>, status",
+    description: "Configure subagent output display. Subcommands: short, full, lines <N>, prompt-lines <N>, status",
     getArgumentCompletions(prefix: string) {
-      const subcommands = ["short", "full", "lines", "status"];
+      const subcommands = ["short", "full", "lines", "prompt-lines", "status"];
       return subcommands
         .filter((s) => s.startsWith(prefix))
         .map((s) => ({ value: s, label: s }));
@@ -532,20 +532,21 @@ _onBgJobComplete = (job) => {
 
       if (!trimmed || trimmed === "status") {
         const mode = getOutputMode();
-        const lines = getPreviewLines();
-        ctx.ui.notify?.(`Subagent output mode: ${mode}, preview lines: ${lines}`);
+        const outLines = getPreviewLines();
+        const inLines = getPromptPreviewLines();
+        ctx.ui.notify?.(`Mode: ${mode} · Output lines: ${outLines} · Input lines: ${inLines}`);
         return;
       }
 
       if (trimmed === "short") {
         setOutputMode("short");
-        ctx.ui.notify?.("Subagent output set to short (compact preview)");
+        ctx.ui.notify?.("Output display: short mode (compact preview)");
         return;
       }
 
       if (trimmed === "full") {
         setOutputMode("full");
-        ctx.ui.notify?.("Subagent output set to full (show complete text)");
+        ctx.ui.notify?.("Output display: full mode (show complete text)");
         return;
       }
 
@@ -553,11 +554,19 @@ _onBgJobComplete = (job) => {
       if (linesMatch) {
         const n = parseInt(linesMatch[1]!, 10);
         setPreviewLines(n);
-        ctx.ui.notify?.(`Subagent preview lines set to ${n}`);
+        ctx.ui.notify?.(`Output preview lines set to ${n}`);
         return;
       }
 
-      ctx.ui.notify?.("Usage: /subagent:output [short|full|lines <N>|status]");
+      const promptLinesMatch = trimmed.match(/^prompt-lines\s+(\d+)$/i);
+      if (promptLinesMatch) {
+        const n = parseInt(promptLinesMatch[1]!, 10);
+        setPromptPreviewLines(n);
+        ctx.ui.notify?.(`Input preview lines set to ${n}`);
+        return;
+      }
+
+      ctx.ui.notify?.("Usage: /subagent:output [short|full|lines <N>|prompt-lines <N>|status]");
     },
   });
 

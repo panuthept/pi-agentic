@@ -214,12 +214,15 @@ export function renderSubagentResult(
 
           // Show the task/prompt (input prompt) instead of tool calls and response text
           if (a.taskSummary) {
-            const preview = truncateToVisualLines(a.taskSummary, 3, width - agentPref.length - 2);
+            const inputMode = readPreviewSettings().outputMode;
+            const showFullInput = inputMode === "full";
+            const maxInputLines = showFullInput ? Infinity : (readPreviewSettings().promptPreviewLines ?? 3);
+            const preview = truncateToVisualLines(a.taskSummary, maxInputLines, width - agentPref.length - 2);
             for (const [li, l] of preview.visualLines.entries()) {
               const prefix = li === 0 ? "IN " : "   ";
               out.push(truncateToWidth(agentPref + theme.fg("dim", prefix + l), width, "..."));
             }
-            if (preview.skippedCount > 0) {
+            if (!showFullInput && preview.skippedCount > 0) {
               out.push(truncateToWidth(theme.fg("dim", agentPref + `  … ${preview.skippedCount} more lines`), width, "..."));
             }
           } else if (a.status === "running") {
@@ -321,12 +324,15 @@ export function renderSubagentResult(
 
     // Task/prompt as child (no "Prompt:" label, 6-space indent like parallel mode)
     if (details.task) {
-      const preview = truncateToVisualLines(details.task, 3, width - 6);
+      const inputMode = readPreviewSettings().outputMode;
+      const showFullInput = inputMode === "full";
+      const maxInputLines = showFullInput ? Infinity : (readPreviewSettings().promptPreviewLines ?? 3);
+      const preview = truncateToVisualLines(details.task, maxInputLines, width - 6);
       for (const [li, l] of preview.visualLines.entries()) {
         const prefix = li === 0 ? "      IN " : "         ";
         out.push(truncateToWidth(`${prefix}${theme.fg("dim", l)}`, width, "..."));
       }
-      if (preview.skippedCount > 0) {
+      if (!showFullInput && preview.skippedCount > 0) {
         out.push(truncateToWidth(theme.fg("dim", `      … ${preview.skippedCount} more lines`), width, "..."));
       }
     }
