@@ -23,6 +23,7 @@ interface LoaderPoolEntry {
   idle: PoolableLoader[];
   active: Set<PoolableLoader>;
   warming: Set<Promise<void>>;
+  creating: Promise<void> | null;
 }
 
 export interface LoaderLease {
@@ -78,7 +79,7 @@ export class LoaderPool {
     const k = this.key(cwd, agentDir, noExtensions);
     let entry = this.entries.get(k);
     if (!entry) {
-      entry = { idle: [], active: new Set(), warming: new Set() };
+      entry = { idle: [], active: new Set(), warming: new Set(), creating: null };
       this.entries.set(k, entry);
     }
     return entry;
@@ -119,6 +120,11 @@ export class LoaderPool {
         continue;
       }
 
+      if (entry.creating) {
+        await entry.creating;
+        continue;
+      }
+
       const loader = this.factory(makeLoaderOptions(cwd, agentDir, noExtensions));
       const warmPromise = loader
         .reload()
@@ -127,7 +133,9 @@ export class LoaderPool {
         })
         .finally(() => {
           entry.warming.delete(warmPromise);
+          entry.creating = null;
         });
+      entry.creating = warmPromise;
       entry.warming.add(warmPromise);
       await warmPromise;
     }
