@@ -223,16 +223,29 @@ export function recordUpdate(
 
 /**
  * Update all running parallel entries from SubagentDetails.
+ *
+ * Matches each agent in `parallelAgents` to its timeline entry by
+ * occurrence order of (agent name + "running" + "parallel") rather than
+ * using a plain `find()`. This ensures that when the same agent appears
+ * in multiple parallel batches (e.g. two `worker` agents in separate
+ * batches), each parallel agent index maps to the correct timeline entry
+ * instead of always updating the first match.
  */
 export function recordParallelUpdate(details: SubagentDetails): void {
   if (!details.parallelAgents) return;
-  for (const agent of details.parallelAgents) {
-    const entry = _state.entries.find(
-      (e) =>
-        e.agent === agent.name &&
-        e.status === "running" &&
-        e.mode === "parallel",
-    );
+  for (let i = 0; i < details.parallelAgents.length; i++) {
+    const agent = details.parallelAgents[i]!;
+    // Count occurrences to find the i-th matching entry.
+    // Since entries are created in the same order as parallelAgents
+    // (by recordParallelStart), the i-th occurrence of an agent name
+    // in the entries list corresponds to parallelAgents[i].
+    let matchCount = 0;
+    const entry = _state.entries.find((e) => {
+      if (e.agent !== agent.name) return false;
+      if (e.status !== "running") return false;
+      if (e.mode !== "parallel") return false;
+      return matchCount++ === i;
+    });
     if (!entry) continue;
     if (agent.toolCalls) entry.toolCount = agent.toolCalls.length;
     if (agent.durMs) entry.duration = agent.durMs;
