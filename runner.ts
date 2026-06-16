@@ -66,7 +66,13 @@ export function getDepthState(): DepthState {
   return _depthContext.getStore() ?? TOP_LEVEL_DEPTH;
 }
 
-/** Run `fn` with `state` set as the current async-scoped depth context. */
+/**
+ * Run `fn` with `state` set as the current async-scoped depth context.
+ *
+ * AsyncLocalStorage.run() auto-cleans on promise settle (resolve or reject).
+ * If fn() never settles (hangs), the depth context persists for its async chain —
+ * this is acceptable since hanging agents are aborted by the caller.
+ */
 export function runWithDepth<T>(state: DepthState, fn: () => Promise<T>): Promise<T> {
   return _depthContext.run(state, fn);
 }

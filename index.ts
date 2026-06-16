@@ -50,6 +50,7 @@ import {
   toggleTimeMode,
   loadTimelineSettings,
 } from "./execution-timeline-widget.js";
+import { resetAgentColors } from "./colors.js";
 import { timelineHandler, getTimelineCompletions } from "./timeline-handler.js";
 
 // ─── Module-level state ─────────────────────────────────────────────────────
@@ -260,6 +261,7 @@ _onBgJobComplete = (job) => {
 
   pi.on("session_shutdown", async () => {
     clearAgentWidget();
+    resetAgentColors();
     getBgManager().shutdown();
     _bgManager = null;
     _setBgStatus = null;
@@ -270,7 +272,7 @@ _onBgJobComplete = (job) => {
   pi.registerShortcut(Key.ctrlShift("b"), {
     description: "Move foreground subagent to background",
     handler: async (ctx) => {
-      const entry = [..._fgJobs.values()][0];
+      const entry = _fgJobs.size > 0 ? [..._fgJobs.values()][0] : undefined;
       if (!entry) {
         ctx.ui.notify("No foreground subagent running.", "info");
         return;

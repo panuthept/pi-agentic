@@ -82,6 +82,8 @@ function loadAgentsFromDir(dir: string, source: "user" | "project"): AgentConfig
     if (!entry.isFile() && !entry.isSymbolicLink()) continue;
     const filePath = path.join(dir, entry.name);
     try {
+      // Note: fs.readFileSync follows symlinks. Users should ensure their agent
+      // directories don't contain untrusted symlinks pointing to sensitive files.
       const content = fs.readFileSync(filePath, "utf-8");
       const { frontmatter, body } = parseFrontmatter<Record<string, string>>(content);
       if (!frontmatter?.name || !frontmatter?.description) continue;
