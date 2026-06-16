@@ -762,6 +762,7 @@ _onBgJobComplete = (job) => {
           batchStartTime: parallelStartTime,
         }));
 
+        let tlParallelIds: string[] | undefined;
         const emitParallel = (running: boolean) => {
           const details: SubagentDetails = {
             mode: "parallel",
@@ -775,12 +776,12 @@ _onBgJobComplete = (job) => {
             content: [{ type: "text", text: "" }],
             details,
           });
-          tlRecordParallelUpdate(details);
+          tlRecordParallelUpdate(details, tlParallelIds);
           reinstallTimelineWidget(ctx);
         };
 
         emitParallel(true);
-        const tlParallelIds = tlRecordParallelStart(expanded);
+        tlParallelIds = tlRecordParallelStart(expanded);
 
         const allResults = await mapConcurrent(expanded, concurrency, async (t, i) => {
           parallelAgents[i]!.status = "running";

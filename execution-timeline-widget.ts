@@ -198,28 +198,30 @@ export function recordUpdate(
 /**
  * Update all running parallel entries from SubagentDetails.
  *
- * Matches each agent in `parallelAgents` to its timeline entry by
- * occurrence order of (agent name + "running" + "parallel") rather than
- * using a plain `find()`. This ensures that when the same agent appears
- * in multiple parallel batches (e.g. two `worker` agents in separate
- * batches), each parallel agent index maps to the correct timeline entry
- * instead of always updating the first match.
+ * Matches each agent in `parallelAgents` to its timeline entry using
+ * an optional `entryIds` lookup (from recordParallelStart). When entry
+ * IDs are provided, direct ID-based matching is used instead of the
+ * occurrence-order heuristic, correctly handling batches with
+ * different-named agents.
  */
-export function recordParallelUpdate(details: SubagentDetails): void {
+export function recordParallelUpdate(
+  details: SubagentDetails,
+  entryIds?: string[],
+): void {
   if (!details.parallelAgents) return;
   for (let i = 0; i < details.parallelAgents.length; i++) {
     const agent = details.parallelAgents[i]!;
-    // Count occurrences to find the i-th matching entry.
-    // Since entries are created in the same order as parallelAgents
-    // (by recordParallelStart), the i-th occurrence of an agent name
-    // in the entries list corresponds to parallelAgents[i].
-    let matchCount = 0;
-    const entry = _state.entries.find((e) => {
-      if (e.agent !== agent.name) return false;
-      if (e.status !== "running") return false;
-      if (e.mode !== "parallel") return false;
-      return matchCount++ === i;
-    });
+    // Prefer direct ID lookup when entry IDs are available (from recordParallelStart).
+    // This correctly handles batches with different-named agents, avoiding the
+    // occurrence-order matching bug where only index 0 ever matched.
+    const entry = entryIds?.[i]
+      ? _state.entries.find((e) => e.id === entryIds[i])
+      : _state.entries.find((e) => {
+          if (e.agent !== agent.name) return false;
+          if (e.status !== "running") return false;
+          if (e.mode !== "parallel") return false;
+          return true; // first entry matching this agent name
+        });
     if (!entry) continue;
     if (agent.toolCalls) entry.toolCount = agent.toolCalls.length;
     if (agent.durMs) entry.duration = agent.durMs;
