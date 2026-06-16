@@ -17,7 +17,7 @@ const DEFAULT_PREVIEW_LINES = 12;
 const DEFAULT_PROMPT_PREVIEW_LINES = 12;
 
 let _settingsCache: { previewLines: number; promptPreviewLines: number; readAt: number } | null = null;
-const SETTINGS_TTL_MS = 2000;
+const SETTINGS_TTL_MS = 30_000;
 
 function readPreviewSettings(): { previewLines: number; promptPreviewLines: number } {
   const now = Date.now();

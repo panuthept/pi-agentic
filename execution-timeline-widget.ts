@@ -357,7 +357,7 @@ export function createTimelineWidget(
         }
         clearCached();
         tui.requestRender();
-      }, 500);
+      }, 1000);
     } else if (!hasRunning() && _heartbeatTimer) {
       clearInterval(_heartbeatTimer);
       _heartbeatTimer = null;
