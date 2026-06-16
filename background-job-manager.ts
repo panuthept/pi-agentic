@@ -31,8 +31,6 @@ export class BackgroundJobManager {
     handle: BackgroundHandleLike,
     resultPromise: Promise<BackgroundJobResult>,
   ): string {
-    handle.detach?.();
-
     const abortController = new AbortController();
     const onAbort = () => handle.abort();
     abortController.signal.addEventListener("abort", onAbort, { once: true });

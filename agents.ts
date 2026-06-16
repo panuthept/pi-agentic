@@ -89,7 +89,8 @@ function loadAgentsFromDir(dir: string, source: "user" | "project"): AgentConfig
       if (!frontmatter?.name || !frontmatter?.description) continue;
       const tools = parseToolsField(frontmatter.tools);
       const maxDepth = parseMaxDepthField(
-        frontmatter.maxDepth ?? frontmatter.max_depth ?? frontmatter.depth ?? frontmatter.subagentDepth,
+        frontmatter.maxDepth ?? frontmatter.max_depth ?? frontmatter.depth ??
+          frontmatter.subagentDepth ?? frontmatter.subagent_depth ?? frontmatter['subagent-depth'],
       );
       agents.push({
         name: frontmatter.name,

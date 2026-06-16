@@ -27,6 +27,7 @@ function parseDuration(input: string): number | null {
   const match = input.match(/^(\d+)\s*(s|sec|m|min|h|hr)?$/);
   if (!match) return null;
   const val = parseInt(match[1]!, 10);
+  if (val <= 0) return null;
   const unit = match[2] || "s";
   switch (unit) {
     case "s": case "sec": return val * 1000;
