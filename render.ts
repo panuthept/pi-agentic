@@ -16,19 +16,22 @@ import type { ExecutionEvent, SubagentDetails } from "./types.js";
 const DEFAULT_PREVIEW_LINES = 12;
 const DEFAULT_PROMPT_PREVIEW_LINES = 12;
 
-let _settingsCache: { previewLines: number; promptPreviewLines: number; readAt: number } | null = null;
+let _settingsCache: { previewLines: number; promptPreviewLines: number; outputMode: string; readAt: number } | null = null;
+/** Tracks which agent outputs have been expanded via [+] toggle. */
+const _expandedOutputs = new Set<string>();
 const SETTINGS_TTL_MS = 30_000;
 
-function readPreviewSettings(): { previewLines: number; promptPreviewLines: number } {
+function readPreviewSettings(): { previewLines: number; promptPreviewLines: number; outputMode: string } {
   const now = Date.now();
   if (_settingsCache && now - _settingsCache.readAt < SETTINGS_TTL_MS) return _settingsCache;
   let previewLines = DEFAULT_PREVIEW_LINES;
   let promptPreviewLines = DEFAULT_PROMPT_PREVIEW_LINES;
+  let outputMode = "short";
   try {
     const path = join(getAgentDir(), "settings.json");
     if (existsSync(path)) {
       const settings = JSON.parse(readFileSync(path, "utf-8")) as {
-        fastSubagent?: { previewLines?: number; promptPreviewLines?: number };
+        fastSubagent?: { previewLines?: number; promptPreviewLines?: number; outputMode?: string };
       };
       const fs = settings.fastSubagent;
       if (fs && typeof fs.previewLines === "number" && fs.previewLines > 0) {
@@ -37,11 +40,14 @@ function readPreviewSettings(): { previewLines: number; promptPreviewLines: numb
       if (fs && typeof fs.promptPreviewLines === "number" && fs.promptPreviewLines > 0) {
         promptPreviewLines = Math.floor(fs.promptPreviewLines);
       }
+      if (fs && typeof fs.outputMode === "string" && (fs.outputMode === "short" || fs.outputMode === "full")) {
+        outputMode = fs.outputMode;
+      }
     }
   } catch {
     // fall through to defaults
   }
-  _settingsCache = { previewLines, promptPreviewLines, readAt: now };
+  _settingsCache = { previewLines, promptPreviewLines, outputMode, readAt: now };
   return _settingsCache;
 }
 
@@ -220,6 +226,30 @@ export function renderSubagentResult(
           } else if (a.status === "running") {
             out.push(truncateToWidth(theme.fg("dim", agentPref + "  running..."), width, "..."));
           }
+
+        // ── Output/response text ──
+        if (a.responseText && (a.status === "done" || a.status === "error")) {
+          const isExpanded = _expandedOutputs.has(a.name);
+          const outputMode = readPreviewSettings().outputMode;
+          const showFull = outputMode === "full" || isExpanded;
+          const maxLines = showFull ? Infinity : (readPreviewSettings().previewLines ?? 3);
+          const toggleIcon = isExpanded ? "[📄]" : "[+]";
+          const pref = agentPref + "  ";
+
+          const preview = truncateToVisualLines(a.responseText, maxLines, width - pref.length - 2);
+          if (preview.visualLines.length > 0) {
+            for (const [li, l] of preview.visualLines.entries()) {
+              const prefix = li === 0 ? `${toggleIcon} ` : `     `;
+              out.push(truncateToWidth(pref + prefix + l, width, "..."));
+            }
+            if (!showFull && preview.skippedCount > 0) {
+              out.push(truncateToWidth(
+                theme.fg("dim", pref + `… ${preview.skippedCount} more lines (click [+] to expand)`),
+                width, "...",
+              ));
+            }
+          }
+        }
         }
 
         // After the agent loop
@@ -300,6 +330,31 @@ export function renderSubagentResult(
       }
       if (preview.skippedCount > 0) {
         out.push(truncateToWidth(theme.fg("dim", `      … ${preview.skippedCount} more lines`), width, "..."));
+      }
+    }
+
+    // ── Output/response text ──
+    const responseText = details.responseText ?? agentText;
+    if (responseText && !details.running) {
+      const isExpanded = _expandedOutputs.has(details.agentName ?? "");
+      const outputMode = readPreviewSettings().outputMode;
+      const showFull = outputMode === "full" || isExpanded;
+      const maxLines = showFull ? Infinity : (readPreviewSettings().previewLines ?? 3);
+      const toggleIcon = isExpanded ? "[📄]" : "[+]";
+      const indent = "      ";
+
+      const preview = truncateToVisualLines(responseText, maxLines, width - 6);
+      if (preview.visualLines.length > 0) {
+        for (const [li, l] of preview.visualLines.entries()) {
+          const prefix = li === 0 ? `${indent}${toggleIcon} ` : `${indent}     `;
+          out.push(truncateToWidth(`${prefix}${l}`, width, "..."));
+        }
+        if (!showFull && preview.skippedCount > 0) {
+          out.push(truncateToWidth(
+            theme.fg("dim", `${indent}  … ${preview.skippedCount} more lines (click [+] to expand)`),
+            width, "...",
+          ));
+        }
       }
     }
 

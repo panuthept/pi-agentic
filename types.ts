@@ -50,6 +50,8 @@ export interface SubagentDetails {
   backgroundJobId?: string;
   toolCalls: ToolCallEntry[];
   executionEvents?: ExecutionEvent[];
+  /** The agent's full output/response text, populated on completion. */
+  responseText?: string;
 }
 
 export type OnUpdate = (partial: {

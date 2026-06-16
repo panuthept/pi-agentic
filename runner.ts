@@ -203,6 +203,7 @@ export async function runAgent(
         model: detectedModel ?? configuredModel,
         toolCalls: [...toolCalls],
         executionEvents: [...executionEvents],
+        responseText: lastOutput,
       } satisfies SubagentDetails,
     });
   }
@@ -312,6 +313,8 @@ export async function runAgent(
         model: detectedModel ?? configuredModel,
         toolCalls: [...toolCalls],
         executionEvents: [...executionEvents],
+        task,
+        responseText: lastOutput,
       } as unknown as SubagentDetails,
     });
   });
