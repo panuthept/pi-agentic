@@ -234,12 +234,12 @@ export function renderSubagentResult(
           const outputMode = readPreviewSettings().outputMode;
           const showFull = outputMode === "full";
           const maxLines = showFull ? Infinity : (readPreviewSettings().previewLines ?? 3);
-          const pref = agentPref + "  ";
+          const pref = agentPref;
 
           const preview = truncateToVisualLines(a.responseText, maxLines, width - pref.length - 2);
           if (preview.visualLines.length > 0) {
             for (const [li, l] of preview.visualLines.entries()) {
-              const prefix = li === 0 ? `💬 ` : `      `;
+              const prefix = li === 0 ? `💬 ` : `   `;
               out.push(truncateToWidth(pref + prefix + l, width, "..."));
             }
             if (!showFull && preview.skippedCount > 0) {
@@ -327,13 +327,13 @@ export function renderSubagentResult(
       const inputMode = readPreviewSettings().outputMode;
       const showFullInput = inputMode === "full";
       const maxInputLines = showFullInput ? Infinity : (readPreviewSettings().promptPreviewLines ?? 3);
-      const preview = truncateToVisualLines(details.task, maxInputLines, width - 6);
+      const preview = truncateToVisualLines(details.task, maxInputLines, width - 4);
       for (const [li, l] of preview.visualLines.entries()) {
-        const prefix = li === 0 ? "      📥 " : "         ";
+        const prefix = li === 0 ? "    📥 " : "       ";
         out.push(truncateToWidth(`${prefix}${theme.fg("dim", l)}`, width, "..."));
       }
       if (!showFullInput && preview.skippedCount > 0) {
-        out.push(truncateToWidth(theme.fg("dim", `      … ${preview.skippedCount} more lines`), width, "..."));
+        out.push(truncateToWidth(theme.fg("dim", `    … ${preview.skippedCount} more lines`), width, "..."));
       }
     }
 
@@ -345,15 +345,15 @@ export function renderSubagentResult(
       const maxLines = showFull ? Infinity : (readPreviewSettings().previewLines ?? 3);
       const indent = "      ";
 
-      const preview = truncateToVisualLines(responseText, maxLines, width - 6);
+      const preview = truncateToVisualLines(responseText, maxLines, width - 4);
       if (preview.visualLines.length > 0) {
         for (const [li, l] of preview.visualLines.entries()) {
-          const prefix = li === 0 ? `      💬 ` : `         `;
+          const prefix = li === 0 ? `    💬 ` : `       `;
           out.push(truncateToWidth(`${prefix}${l}`, width, "..."));
         }
         if (!showFull && preview.skippedCount > 0) {
           out.push(truncateToWidth(
-            theme.fg("dim", `      … ${preview.skippedCount} more lines`),
+            theme.fg("dim", `    … ${preview.skippedCount} more lines`),
             width, "...",
           ));
         }
