@@ -218,7 +218,7 @@ export function renderSubagentResult(
           if (a.taskSummary) {
             const preview = truncateToVisualLines(a.taskSummary, 3, width - agentPref.length - 2);
             for (const [li, l] of preview.visualLines.entries()) {
-              const prefix = li === 0 ? "📥 " : "   ";
+              const prefix = li === 0 ? "IN " : "   ";
               out.push(truncateToWidth(agentPref + theme.fg("dim", prefix + l), width, "..."));
             }
             if (preview.skippedCount > 0) {
@@ -240,7 +240,7 @@ export function renderSubagentResult(
           const preview = truncateToVisualLines(a.responseText, maxLines, width - pref.length - 2);
           if (preview.visualLines.length > 0) {
             for (const [li, l] of preview.visualLines.entries()) {
-              const prefix = li === 0 ? `📤 ${toggleIcon} ` : `      `;
+              const prefix = li === 0 ? `OUT ${toggleIcon} ` : `      `;
               out.push(truncateToWidth(pref + prefix + l, width, "..."));
             }
             if (!showFull && preview.skippedCount > 0) {
@@ -327,7 +327,7 @@ export function renderSubagentResult(
     if (details.task) {
       const preview = truncateToVisualLines(details.task, 3, width - 6);
       for (const [li, l] of preview.visualLines.entries()) {
-        const prefix = li === 0 ? "      📥 " : "         ";
+        const prefix = li === 0 ? "      IN " : "         ";
         out.push(truncateToWidth(`${prefix}${theme.fg("dim", l)}`, width, "..."));
       }
       if (preview.skippedCount > 0) {
@@ -348,7 +348,7 @@ export function renderSubagentResult(
       const preview = truncateToVisualLines(responseText, maxLines, width - 6);
       if (preview.visualLines.length > 0) {
         for (const [li, l] of preview.visualLines.entries()) {
-          const prefix = li === 0 ? `      📤 ${toggleIcon} ` : `         `;
+          const prefix = li === 0 ? `      OUT ${toggleIcon} ` : `         `;
           out.push(truncateToWidth(`${prefix}${l}`, width, "..."));
         }
         if (!showFull && preview.skippedCount > 0) {
