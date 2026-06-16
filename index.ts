@@ -163,17 +163,26 @@ function injectAgentInstructions(payload) {
   const def = _agentCatalog.get(_currentAgent);
   if (!def?.instructions) return payload;
   const injection = "\n\n[AGENT: " + _currentAgent.toUpperCase() + "]" + def.instructions;
-  const obj = payload;
+  // Clone the payload to avoid mutating the original
+  const obj = { ...payload };
   if (typeof obj.system === "string") {
-    obj.system += injection;
+    obj.system = obj.system + injection;
   } else if (Array.isArray(obj.system)) {
-    obj.system.push({ type: "text", text: injection });
+    obj.system = [...obj.system, { type: "text", text: injection }];
   } else if (Array.isArray(obj.messages)) {
+    // Clone messages array and each message object
+    obj.messages = obj.messages.map(m => ({ ...m }));
     const sysMsg = obj.messages.find(m => m.role === "system");
     if (sysMsg) {
-      if (typeof sysMsg.content === "string") sysMsg.content += injection;
-      else if (Array.isArray(sysMsg.content)) sysMsg.content.push({ type: "text", text: injection });
-    } else obj.messages.unshift({ role: "system", content: injection });
+      if (typeof sysMsg.content === "string") {
+        sysMsg.content = sysMsg.content + injection;
+      } else if (Array.isArray(sysMsg.content)) {
+        sysMsg.content = [...sysMsg.content, { type: "text", text: injection }];
+      }
+    } else {
+      // Prepend a new system message (matching original unshift behavior)
+      obj.messages = [{ role: "system", content: injection }, ...obj.messages];
+    }
   }
   return obj;
 }
